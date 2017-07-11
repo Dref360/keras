@@ -516,8 +516,7 @@ class Sequential(Model):
         # Returns
             A layer instance.
         """
-        if self.model is None:
-            self.build()
+        self.build()
         return self.model.get_layer(name, index)
 
     def call(self, inputs, mask=None):

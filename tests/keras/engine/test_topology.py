@@ -32,6 +32,16 @@ def test_get_losses_for():
     assert dense_layer.get_losses_for(a) == [0]
     assert dense_layer.get_losses_for(None) == [1]
 
+@keras_test
+def test_get_layer():
+    # Reproduce #7308
+    model = Sequential()
+    model.add(Dense(128, input_shape=(784,)))
+    model.add(Dense(64))
+    sh = model.get_layer(index=-1).output_shape
+    model.add(Dense(32))
+    sh2 = model.get_layer(index=-1).output_shape
+    assert sh != sh2, "Model was not rebuilt!"
 
 @keras_test
 def test_trainable_weights():
