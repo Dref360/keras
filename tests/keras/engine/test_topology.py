@@ -32,6 +32,7 @@ def test_get_losses_for():
     assert dense_layer.get_losses_for(a) == [0]
     assert dense_layer.get_losses_for(None) == [1]
 
+
 @keras_test
 def test_get_layer():
     # Reproduce #7308
