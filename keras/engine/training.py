@@ -2077,7 +2077,7 @@ class Model(Container):
         wait_time = 0.01  # in seconds
         epoch = initial_epoch
 
-        do_validation = bool(validation_data)
+        do_validation = validation_data is None
         self._make_train_function()
         if do_validation:
             self._make_test_function()
