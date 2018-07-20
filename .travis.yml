@@ -87,13 +87,15 @@ install:
   - for entry in `git diff --name-only HEAD~1`; do if [[ "$entry" == "keras/applications/"* ]]; then export APP_CHANGED=True; fi; done
 
   #install open mpi
-  - rm -rf ~/mpi
-  - mkdir ~/mpi
-  - pushd ~/mpi
-  - wget http://cntk.ai/PythonWheel/ForKeras/depends/openmpi_1.10-3.zip
-  - unzip ./openmpi_1.10-3.zip
-  - sudo dpkg -i openmpi_1.10-3.deb
-  - popd
+  - if if [[ "$KERAS_BACKEND" == "cntk" ]]; then
+      rm -rf ~/mpi;
+      mkdir ~/mpi;
+      pushd ~/mpi;
+      wget http://cntk.ai/PythonWheel/ForKeras/depends/openmpi_1.10-3.zip;
+      unzip ./openmpi_1.10-3.zip;
+      sudo dpkg -i openmpi_1.10-3.deb;
+      popd;
+    fi
 
 # command to run tests
 script:
