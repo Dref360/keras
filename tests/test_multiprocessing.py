@@ -10,7 +10,7 @@ from keras.utils import Sequence
 
 STEPS_PER_EPOCH = 100
 STEPS = 100
-WORKERS = 4
+WORKERS = 2
 
 
 class DummySequence(Sequence):
@@ -240,7 +240,6 @@ def test_multiprocessing_training():
 
 
 @keras_test
-@pytest.mark.skip("This is dumb")
 def test_multiprocessing_training_from_file(in_tmpdir):
     arr_data = np.random.randint(0, 256, (50, 2))
     arr_labels = np.random.randint(0, 2, 50)
