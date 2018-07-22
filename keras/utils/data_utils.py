@@ -700,7 +700,8 @@ class GeneratorEnqueuer(SequenceEnqueuer):
         try:
             self.max_queue_size = max_queue_size
             if self._use_multiprocessing:
-                self.queue = multiprocessing.Queue(maxsize=max_queue_size)
+                self._manager = multiprocessing.Manager()
+                self.queue = self._manager.Queue(maxsize=max_queue_size)
                 self._stop_event = multiprocessing.Event()
             else:
                 # On all OSes, avoid **SYSTEMATIC** error in multithreading mode:
@@ -751,8 +752,10 @@ class GeneratorEnqueuer(SequenceEnqueuer):
                 # join, rendering this test meaningless -> Call thread.join()
                 # always, which is ok no matter what the status of the thread.
                 thread.join(timeout)
-        if self.queue and self._use_multiprocessing:
-            self.queue.close()
+
+        if self._manager:
+            self._manager.shutdown()
+
         self._threads = []
         self._stop_event = None
         self.queue = None
@@ -779,7 +782,7 @@ class GeneratorEnqueuer(SequenceEnqueuer):
             else:
                 all_finished = all([not thread.is_alive() for thread in self._threads])
                 if all_finished and self.queue.empty():
-                    break
+                    raise StopIteration()
                 else:
                     time.sleep(self.wait_time)
 
@@ -787,5 +790,4 @@ class GeneratorEnqueuer(SequenceEnqueuer):
         while not self.queue.empty():
             success, value = self.queue.get()
             if not success:
-                while True:
-                    six.reraise(value.__class__, value, value.__traceback__)
+                six.reraise(value.__class__, value, value.__traceback__)
