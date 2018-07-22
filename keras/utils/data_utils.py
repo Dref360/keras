@@ -787,4 +787,5 @@ class GeneratorEnqueuer(SequenceEnqueuer):
         while not self.queue.empty():
             success, value = self.queue.get()
             if not success:
-                six.reraise(value.__class__, value, value.__traceback__)
+                while True:
+                    six.reraise(value.__class__, value, value.__traceback__)
