@@ -779,7 +779,7 @@ class GeneratorEnqueuer(SequenceEnqueuer):
             else:
                 all_finished = all([not thread.is_alive() for thread in self._threads])
                 if all_finished and self.queue.empty():
-                    raise StopIteration("All threads are finished and the queue is empty.")
+                    break
                 else:
                     time.sleep(self.wait_time)
 
