@@ -10,7 +10,7 @@ from keras.utils import Sequence
 
 STEPS_PER_EPOCH = 100
 STEPS = 100
-WORKERS = 2
+WORKERS = 4
 
 
 class DummySequence(Sequence):
