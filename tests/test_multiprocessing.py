@@ -561,7 +561,8 @@ def test_multiprocessing_fit_error():
     model.add(Dense(1, input_shape=(2, )))
     model.compile(loss='mse', optimizer='adadelta')
 
-    samples = batch_size * (good_batches + 1)
+    samples_multi = WORKERS * good_batches + 1
+    samples_thread = good_batches + 1
 
     # - Produce data on 4 worker processes, consume on main process:
     #   - Each worker process runs OWN copy of generator
@@ -572,7 +573,7 @@ def test_multiprocessing_fit_error():
     if os.name is 'nt':
         with pytest.raises(ValueError):
             model.fit_generator(custom_generator(),
-                                steps_per_epoch=samples,
+                                steps_per_epoch=samples_multi,
                                 validation_steps=None,
                                 max_queue_size=10,
                                 workers=WORKERS,
@@ -580,7 +581,7 @@ def test_multiprocessing_fit_error():
     else:
         with pytest.raises(RuntimeError):
             model.fit_generator(custom_generator(),
-                                steps_per_epoch=samples,
+                                steps_per_epoch=samples_multi,
                                 validation_steps=None,
                                 max_queue_size=10,
                                 workers=WORKERS,
@@ -591,7 +592,7 @@ def test_multiprocessing_fit_error():
     #   - Make sure `RuntimeError` exception bubbles up
     with pytest.raises(RuntimeError):
         model.fit_generator(custom_generator(),
-                            steps_per_epoch=samples,
+                            steps_per_epoch=samples_thread,
                             validation_steps=None,
                             max_queue_size=10,
                             workers=WORKERS,
@@ -606,7 +607,7 @@ def test_multiprocessing_fit_error():
     if os.name is 'nt':
         with pytest.raises(ValueError):
             model.fit_generator(custom_generator(),
-                                steps_per_epoch=samples,
+                                steps_per_epoch=samples_multi,
                                 validation_steps=None,
                                 max_queue_size=10,
                                 workers=1,
@@ -614,7 +615,7 @@ def test_multiprocessing_fit_error():
     else:
         with pytest.raises(RuntimeError):
             model.fit_generator(custom_generator(),
-                                steps_per_epoch=samples,
+                                steps_per_epoch=samples_multi,
                                 validation_steps=None,
                                 max_queue_size=10,
                                 workers=1,
@@ -625,7 +626,7 @@ def test_multiprocessing_fit_error():
     #   - Make sure `RuntimeError` exception bubbles up
     with pytest.raises(RuntimeError):
         model.fit_generator(custom_generator(),
-                            steps_per_epoch=samples,
+                            steps_per_epoch=samples_thread,
                             validation_steps=None,
                             max_queue_size=10,
                             workers=1,
@@ -636,14 +637,14 @@ def test_multiprocessing_fit_error():
     #   - Make sure `RuntimeError` exception bubbles up
     with pytest.raises(RuntimeError):
         model.fit_generator(custom_generator(),
-                            steps_per_epoch=samples,
+                            steps_per_epoch=samples_multi,
                             validation_steps=None,
                             max_queue_size=10,
                             workers=0,
                             use_multiprocessing=True)
     with pytest.raises(RuntimeError):
         model.fit_generator(custom_generator(),
-                            steps_per_epoch=samples,
+                            steps_per_epoch=samples_thread,
                             validation_steps=None,
                             max_queue_size=10,
                             workers=0,
