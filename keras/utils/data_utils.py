@@ -751,7 +751,8 @@ class GeneratorEnqueuer(SequenceEnqueuer):
                 # join, rendering this test meaningless -> Call thread.join()
                 # always, which is ok no matter what the status of the thread.
                 thread.join(timeout)
-
+        if self.queue and self._use_multiprocessing:
+            self.queue.close()
         self._threads = []
         self._stop_event = None
         self.queue = None
@@ -778,7 +779,7 @@ class GeneratorEnqueuer(SequenceEnqueuer):
             else:
                 all_finished = all([not thread.is_alive() for thread in self._threads])
                 if all_finished and self.queue.empty():
-                    raise StopIteration()
+                    raise StopIteration("All threads are finished and the queue is empty.")
                 else:
                     time.sleep(self.wait_time)
 
