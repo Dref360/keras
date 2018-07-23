@@ -701,9 +701,9 @@ class GeneratorEnqueuer(SequenceEnqueuer):
         try:
             self.max_queue_size = max_queue_size
             if self._use_multiprocessing:
-                #self._manager = multiprocessing.managers.SyncManager()
-                #self._manager.start()
-                self.queue = multiprocessing.Queue(maxsize=max_queue_size)
+                self._manager = multiprocessing.managers.SyncManager()
+                self._manager.start()
+                self.queue = self._manager.Queue(maxsize=max_queue_size)
                 self._stop_event = multiprocessing.Event()
             else:
                 # On all OSes, avoid **SYSTEMATIC** error in multithreading mode:
@@ -757,8 +757,6 @@ class GeneratorEnqueuer(SequenceEnqueuer):
 
         if self._manager:
             self._manager.shutdown()
-        if self.queue and self._use_multiprocessing:
-            self.queue.close()
 
         self._threads = []
         self._stop_event = None
