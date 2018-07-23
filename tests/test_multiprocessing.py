@@ -1,6 +1,8 @@
 from __future__ import print_function
 import os
 import threading
+import time
+
 import pytest
 import numpy as np
 from keras.models import Sequential
@@ -11,7 +13,7 @@ from keras.utils import Sequence
 STEPS_PER_EPOCH = 100
 STEPS = 100
 WORKERS = 4
-
+SLEEP = 0.
 
 class DummySequence(Sequence):
     def __getitem__(self, idx):
@@ -48,6 +50,7 @@ def test_multiprocessing_training():
             end = start + batch_size
             X = arr_data[start: end]
             y = arr_labels[start: end]
+            time.sleep(SLEEP)
             if use_weights:
                 w = arr_weights[start: end]
                 yield X, y, w
@@ -258,6 +261,7 @@ def test_multiprocessing_training_from_file(in_tmpdir):
             end = start + batch_size
             X = arr['data'][start: end]
             y = arr['labels'][start: end]
+            time.sleep(SLEEP)
             yield X, y
 
     # Build a NN
@@ -372,6 +376,7 @@ def test_multiprocessing_predicting():
             start = batch_index
             end = start + batch_size
             X = arr_data[start: end]
+            time.sleep(SLEEP)
             yield X
 
     # Build a NN
@@ -462,6 +467,7 @@ def test_multiprocessing_evaluating():
             end = start + batch_size
             X = arr_data[start: end]
             y = arr_labels[start: end]
+            time.sleep(SLEEP)
             yield X, y
 
     # Build a NN
@@ -554,6 +560,7 @@ def test_multiprocessing_fit_error():
             end = start + batch_size
             X = arr_data[start: end]
             y = arr_labels[start: end]
+            time.sleep(SLEEP)
             yield X, y
         raise RuntimeError
 
@@ -667,6 +674,7 @@ def test_multiprocessing_evaluate_error():
             end = start + batch_size
             X = arr_data[start: end]
             y = arr_labels[start: end]
+            time.sleep(SLEEP)
             yield X, y
         raise RuntimeError
 
@@ -704,6 +712,30 @@ def test_multiprocessing_evaluate_error():
                                  max_queue_size=10,
                                  workers=WORKERS,
                                  use_multiprocessing=False)
+
+    @keras_test
+def test_multiprocessing_evaluate_error_low():
+    arr_data = np.random.randint(0, 256, (50, 2))
+    arr_labels = np.random.randint(0, 2, 50)
+    batch_size = 10
+    n_samples = 50
+    good_batches = 3
+
+    def custom_generator():
+        """Raises an exception after a few good batches"""
+        for i in range(good_batches):
+            batch_index = np.random.randint(0, n_samples - batch_size)
+            start = batch_index
+            end = start + batch_size
+            X = arr_data[start: end]
+            y = arr_labels[start: end]
+            time.sleep(SLEEP)
+            yield X, y
+        raise RuntimeError
+
+    model = Sequential()
+    model.add(Dense(1, input_shape=(2,)))
+    model.compile(loss='mse', optimizer='adadelta')
 
     # - Produce data on 1 worker process, consume on main process:
     #   - Worker process runs generator
@@ -769,6 +801,7 @@ def test_multiprocessing_predict_error():
             end = start + batch_size
             X = arr_data[start: end]
             yield X
+            time.sleep(SLEEP)
         raise RuntimeError
 
     model = Sequential()
