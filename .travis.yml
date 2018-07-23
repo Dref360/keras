@@ -1,5 +1,5 @@
 sudo: required
-dist: trusty
+dist: xenial
 language: python
 matrix:
     include:
@@ -114,3 +114,21 @@ script:
     else
       PYTHONPATH=$PWD:$PYTHONPATH py.test tests/ --ignore=tests/integration_tests --ignore=tests/test_documentation.py --ignore=tests/keras/legacy/layers_test.py --cov-config .coveragerc --cov=keras tests/;
     fi
+
+before_install:
+# shutdown servies on Travis, which may have a memory impact
+# show memory usage before and after shutdown of services
+- sudo service --status-all
+- sudo free -m -t
+- sudo /etc/init.d/mysql stop
+- sudo /etc/init.d/postgresql stop
+#- sudo /etc/init.d/couchdb stop
+- sudo /etc/init.d/redis-server stop
+- sudo free -m -t
+
+
+after_failure:
+# show memory usage again
+- sudo free -m -t
+# show actions of the OOM killer
+- sudo dmesg
