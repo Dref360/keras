@@ -713,7 +713,7 @@ def test_multiprocessing_evaluate_error():
                                  workers=WORKERS,
                                  use_multiprocessing=False)
 
-    @keras_test
+@keras_test
 def test_multiprocessing_evaluate_error_low():
     arr_data = np.random.randint(0, 256, (50, 2))
     arr_labels = np.random.randint(0, 2, 50)
