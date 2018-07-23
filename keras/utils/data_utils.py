@@ -5,7 +5,6 @@ from __future__ import print_function
 
 import hashlib
 import multiprocessing
-import multiprocessing.managers
 import os
 import random
 import shutil
@@ -701,8 +700,7 @@ class GeneratorEnqueuer(SequenceEnqueuer):
         try:
             self.max_queue_size = max_queue_size
             if self._use_multiprocessing:
-                self._manager = multiprocessing.managers.SyncManager()
-                self._manager.start()
+                self._manager = multiprocessing.Manager()
                 self.queue = self._manager.Queue(maxsize=max_queue_size)
                 self._stop_event = multiprocessing.Event()
             else:

@@ -1,8 +1,6 @@
 from __future__ import print_function
 import os
 import threading
-import time
-
 import pytest
 import numpy as np
 from keras.models import Sequential
@@ -13,7 +11,7 @@ from keras.utils import Sequence
 STEPS_PER_EPOCH = 100
 STEPS = 100
 WORKERS = 4
-SLEEP = 0.
+
 
 class DummySequence(Sequence):
     def __getitem__(self, idx):
@@ -50,7 +48,6 @@ def test_multiprocessing_training():
             end = start + batch_size
             X = arr_data[start: end]
             y = arr_labels[start: end]
-            time.sleep(SLEEP)
             if use_weights:
                 w = arr_weights[start: end]
                 yield X, y, w
@@ -261,7 +258,6 @@ def test_multiprocessing_training_from_file(in_tmpdir):
             end = start + batch_size
             X = arr['data'][start: end]
             y = arr['labels'][start: end]
-            time.sleep(SLEEP)
             yield X, y
 
     # Build a NN
@@ -376,7 +372,6 @@ def test_multiprocessing_predicting():
             start = batch_index
             end = start + batch_size
             X = arr_data[start: end]
-            time.sleep(SLEEP)
             yield X
 
     # Build a NN
@@ -467,7 +462,6 @@ def test_multiprocessing_evaluating():
             end = start + batch_size
             X = arr_data[start: end]
             y = arr_labels[start: end]
-            time.sleep(SLEEP)
             yield X, y
 
     # Build a NN
@@ -560,7 +554,6 @@ def test_multiprocessing_fit_error():
             end = start + batch_size
             X = arr_data[start: end]
             y = arr_labels[start: end]
-            time.sleep(SLEEP)
             yield X, y
         raise RuntimeError
 
@@ -674,7 +667,6 @@ def test_multiprocessing_evaluate_error():
             end = start + batch_size
             X = arr_data[start: end]
             y = arr_labels[start: end]
-            time.sleep(SLEEP)
             yield X, y
         raise RuntimeError
 
@@ -729,7 +721,6 @@ def test_multiprocessing_evaluate_error_low():
             end = start + batch_size
             X = arr_data[start: end]
             y = arr_labels[start: end]
-            time.sleep(SLEEP)
             yield X, y
         raise RuntimeError
 
@@ -801,7 +792,6 @@ def test_multiprocessing_predict_error():
             end = start + batch_size
             X = arr_data[start: end]
             yield X
-            time.sleep(SLEEP)
         raise RuntimeError
 
     model = Sequential()
