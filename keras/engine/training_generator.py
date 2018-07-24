@@ -100,6 +100,7 @@ def fit_generator(model,
 
     enqueuer = None
     val_enqueuer = None
+    output_generator = None
 
     try:
         if do_validation and not val_gen:
@@ -232,7 +233,8 @@ def fit_generator(model,
                 break
 
     finally:
-        del output_generator
+        if output_generator :
+            del output_generator
         try:
             if enqueuer is not None:
                 enqueuer.stop()
@@ -284,6 +286,7 @@ def evaluate_generator(model, generator,
                              ' Please specify `steps` or use the'
                              ' `keras.utils.Sequence` class.')
     enqueuer = None
+    output_generator = None
 
     try:
         if workers > 0:
@@ -349,6 +352,8 @@ def evaluate_generator(model, generator,
                 progbar.update(steps_done)
 
     finally:
+        if output_generator:
+            del output_generator
         if enqueuer is not None:
             enqueuer.stop()
 
@@ -392,6 +397,7 @@ def predict_generator(model, generator,
                              ' Please specify `steps` or use the'
                              ' `keras.utils.Sequence` class.')
     enqueuer = None
+    output_generator = None
 
     try:
         if workers > 0:
@@ -449,7 +455,8 @@ def predict_generator(model, generator,
                 progbar.update(steps_done)
 
     finally:
-        del output_generator
+        if output_generator:
+            del output_generator
         if enqueuer is not None:
             enqueuer.stop()
 
