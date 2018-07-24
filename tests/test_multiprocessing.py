@@ -200,6 +200,33 @@ def test_multiprocessing_training():
                         workers=0,
                         use_multiprocessing=False)
 
+@keras_test
+def test_multiprocessing_training_invalid():
+    arr_data = np.random.randint(0, 256, (50, 2))
+    arr_labels = np.random.randint(0, 2, 50)
+    arr_weights = np.random.random(50)
+
+    def custom_generator(use_weights=False):
+        batch_size = 10
+        n_samples = 50
+
+        while True:
+            batch_index = np.random.randint(0, n_samples - batch_size)
+            start = batch_index
+            end = start + batch_size
+            X = arr_data[start: end]
+            y = arr_labels[start: end]
+            if use_weights:
+                w = arr_weights[start: end]
+                yield X, y, w
+            else:
+                yield X, y
+
+    # Build a NN
+    model = Sequential()
+    model.add(Dense(1, input_shape=(2,)))
+    model.compile(loss='mse', optimizer='adadelta')
+
     # Test invalid use cases
     def invalid_generator():
         while True:
