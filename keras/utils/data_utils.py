@@ -681,6 +681,8 @@ class GeneratorEnqueuer(SequenceEnqueuer):
                 except StopIteration:
                     break
                 except Exception as e:
+                    if self._stop_event.is_set() or isinstance(e, (EOFError, IOError)):
+                        return
                     # Can't pickle tracebacks.
                     # As a compromise, print the traceback and pickle None instead.
                     traceback.print_exc()
@@ -745,6 +747,7 @@ class GeneratorEnqueuer(SequenceEnqueuer):
         for thread in self._threads:
             if self._use_multiprocessing:
                 if thread.is_alive():
+                    #thread.join()
                     thread.terminate()
             else:
                 # The thread.is_alive() test is subject to a race condition:
@@ -756,6 +759,8 @@ class GeneratorEnqueuer(SequenceEnqueuer):
         if self._manager:
             self._manager.shutdown()
 
+        #assert all([not thread.is_alive() for thread in self._threads])
+        ##self._manager = None
         self._threads = []
         self._stop_event = None
         self.queue = None

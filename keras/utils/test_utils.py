@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import gc
 import numpy as np
 from numpy.testing import assert_allclose
 import six
@@ -161,5 +162,6 @@ def keras_test(func):
         output = func(*args, **kwargs)
         if K.backend() == 'tensorflow' or K.backend() == 'cntk':
             K.clear_session()
+        gc.collect()
         return output
     return wrapper
