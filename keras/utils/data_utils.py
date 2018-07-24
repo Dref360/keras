@@ -747,7 +747,7 @@ class GeneratorEnqueuer(SequenceEnqueuer):
         for thread in self._threads:
             if self._use_multiprocessing:
                 if thread.is_alive():
-                    #thread.join()
+                    thread.join()
                     thread.terminate()
             else:
                 # The thread.is_alive() test is subject to a race condition:
@@ -759,8 +759,8 @@ class GeneratorEnqueuer(SequenceEnqueuer):
         if self._manager:
             self._manager.shutdown()
 
-        #assert all([not thread.is_alive() for thread in self._threads])
-        ##self._manager = None
+        assert all([not thread.is_alive() for thread in self._threads])
+        self._manager = None
         self._threads = []
         self._stop_event = None
         self.queue = None

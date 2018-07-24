@@ -1171,6 +1171,8 @@ class Model(Network):
                                             verbose=verbose,
                                             steps=steps)
 
+
+
     def train_on_batch(self, x, y,
                        sample_weight=None,
                        class_weight=None):

@@ -232,6 +232,7 @@ def fit_generator(model,
                 break
 
     finally:
+        del output_generator
         try:
             if enqueuer is not None:
                 enqueuer.stop()
@@ -240,6 +241,7 @@ def fit_generator(model,
                 val_enqueuer.stop()
 
     callbacks.on_train_end()
+    del callbacks
     return model.history
 
 
@@ -447,6 +449,7 @@ def predict_generator(model, generator,
                 progbar.update(steps_done)
 
     finally:
+        del output_generator
         if enqueuer is not None:
             enqueuer.stop()
 
