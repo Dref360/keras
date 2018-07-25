@@ -228,6 +228,7 @@ def fit_generator(model,
                     break
 
             callbacks.on_epoch_end(epoch, epoch_logs)
+            epoch_logs.clear()
             epoch += 1
             if callback_model.stop_training:
                 break
