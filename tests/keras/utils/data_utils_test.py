@@ -20,6 +20,10 @@ from keras.utils.data_utils import _hash_file
 from keras.utils.data_utils import get_file
 from keras.utils.data_utils import validate_file
 
+WORKERS = 3
+
+STEPS = 100
+
 if sys.version_info < (3,):
     def next(x):
         return x.next()
@@ -134,7 +138,7 @@ class DummySequence(Sequence):
         return np.ones(self.shape, dtype=np.uint32) * item * self.inner
 
     def __len__(self):
-        return 100
+        return STEPS
 
     def on_epoch_end(self):
         self.inner *= 5.0
@@ -145,7 +149,7 @@ class FaultSequence(Sequence):
         raise IndexError(item, 'is not present')
 
     def __len__(self):
-        return 100
+        return STEPS
 
     def on_epoch_end(self):
         pass
@@ -165,36 +169,36 @@ def create_generator_from_sequence_pcs(ds):
 def test_generator_enqueuer_threads():
     enqueuer = GeneratorEnqueuer(create_generator_from_sequence_threads(
         DummySequence([3, 2, 2, 3])), use_multiprocessing=False)
-    enqueuer.start(3, 10)
+    enqueuer.start(WORKERS, 10)
     gen_output = enqueuer.get()
     acc = []
-    for i in range(100):
+    for i in range(STEPS):
         acc.append(int(next(gen_output)[0, 0, 0, 0]))
 
     """
      Not comparing the order since it is not guaranteed.
      It may get ordered, but not a lot, one thread can take the GIL before he was supposed to.
     """
-    assert len(set(acc) - set(range(100))) == 0, "Output is not the same"
+    assert len(set(acc) - set(range(STEPS))) == 0, "Output is not the same"
     enqueuer.stop()
 
 
 def test_generator_enqueuer_processes():
     enqueuer = GeneratorEnqueuer(create_generator_from_sequence_pcs(
         DummySequence([3, 2, 2, 3])), use_multiprocessing=True)
-    enqueuer.start(3, 10)
+    enqueuer.start(WORKERS, 10)
     gen_output = enqueuer.get()
     acc = []
-    for i in range(100):
+    for i in range(STEPS):
         acc.append(int(next(gen_output)[0, 0, 0, 0]))
-    assert acc != list(range(100)), "Order was keep in GeneratorEnqueuer with processes"
+    assert acc != list(range(STEPS)), "Order was keep in GeneratorEnqueuer with processes"
     enqueuer.stop()
 
 
 def test_generator_enqueuer_fail_threads():
     enqueuer = GeneratorEnqueuer(create_generator_from_sequence_threads(
         FaultSequence()), use_multiprocessing=False)
-    enqueuer.start(3, 10)
+    enqueuer.start(WORKERS, 10)
     gen_output = enqueuer.get()
     with pytest.raises(IndexError):
         next(gen_output)
@@ -203,7 +207,7 @@ def test_generator_enqueuer_fail_threads():
 def test_generator_enqueuer_fail_processes():
     enqueuer = GeneratorEnqueuer(create_generator_from_sequence_pcs(
         FaultSequence()), use_multiprocessing=True)
-    enqueuer.start(3, 10)
+    enqueuer.start(WORKERS, 10)
     gen_output = enqueuer.get()
     with pytest.raises(IndexError):
         next(gen_output)
@@ -211,12 +215,12 @@ def test_generator_enqueuer_fail_processes():
 
 def test_ordered_enqueuer_threads():
     enqueuer = OrderedEnqueuer(DummySequence([3, 2, 2, 3]), use_multiprocessing=False)
-    enqueuer.start(3, 10)
+    enqueuer.start(WORKERS, 10)
     gen_output = enqueuer.get()
     acc = []
-    for i in range(100):
+    for i in range(STEPS):
         acc.append(next(gen_output)[0, 0, 0, 0])
-    assert acc == list(range(100)), "Order was not keep in GeneratorEnqueuer with threads"
+    assert acc == list(range(STEPS)), "Order was not keep in GeneratorEnqueuer with threads"
     enqueuer.stop()
 
 
@@ -224,30 +228,30 @@ def test_ordered_enqueuer_threads_not_ordered():
     enqueuer = OrderedEnqueuer(DummySequence([3, 2, 2, 3]),
                                use_multiprocessing=False,
                                shuffle=True)
-    enqueuer.start(3, 10)
+    enqueuer.start(WORKERS, 10)
     gen_output = enqueuer.get()
     acc = []
-    for i in range(100):
+    for i in range(STEPS):
         acc.append(next(gen_output)[0, 0, 0, 0])
-    assert acc != list(range(100)), "Order was not keep in GeneratorEnqueuer with threads"
+    assert acc != list(range(STEPS)), "Order was not keep in GeneratorEnqueuer with threads"
     enqueuer.stop()
 
 
 @use_spawn
 def test_ordered_enqueuer_processes():
     enqueuer = OrderedEnqueuer(DummySequence([3, 2, 2, 3]), use_multiprocessing=True)
-    enqueuer.start(3, 10)
+    enqueuer.start(WORKERS, 10)
     gen_output = enqueuer.get()
     acc = []
-    for i in range(100):
+    for i in range(STEPS):
         acc.append(next(gen_output)[0, 0, 0, 0])
-    assert acc == list(range(100)), "Order was not keep in GeneratorEnqueuer with processes"
+    assert acc == list(range(STEPS)), "Order was not keep in GeneratorEnqueuer with processes"
     enqueuer.stop()
 
 
 def test_ordered_enqueuer_fail_threads():
     enqueuer = OrderedEnqueuer(FaultSequence(), use_multiprocessing=False)
-    enqueuer.start(3, 10)
+    enqueuer.start(WORKERS, 10)
     gen_output = enqueuer.get()
     with pytest.raises(StopIteration):
         next(gen_output)
@@ -256,12 +260,12 @@ def test_ordered_enqueuer_fail_threads():
 @use_spawn
 def test_on_epoch_end_processes():
     enqueuer = OrderedEnqueuer(DummySequence([3, 2, 2, 3]), use_multiprocessing=True)
-    enqueuer.start(3, 10)
+    enqueuer.start(WORKERS, 10)
     gen_output = enqueuer.get()
     acc = []
-    for i in range(200):
+    for i in range(2*STEPS):
         acc.append(next(gen_output)[0, 0, 0, 0])
-    assert acc[100:] == list([k * 5 for k in range(100)]), "Order was not keep in GeneratorEnqueuer with processes"
+    assert acc[STEPS:] == list([k * 5 for k in range(STEPS)]), "Order was not keep in GeneratorEnqueuer with processes"
     enqueuer.stop()
 
 
@@ -269,18 +273,18 @@ def test_on_epoch_end_processes():
 def test_context_switch():
     enqueuer = OrderedEnqueuer(DummySequence([3, 2, 2, 3]), use_multiprocessing=True)
     enqueuer2 = OrderedEnqueuer(DummySequence([3, 2, 2, 3], value=15), use_multiprocessing=True)
-    enqueuer.start(3, 10)
-    enqueuer2.start(3, 10)
+    enqueuer.start(WORKERS, 10)
+    enqueuer2.start(WORKERS, 10)
     gen_output = enqueuer.get()
     gen_output2 = enqueuer2.get()
     acc = []
-    for i in range(100):
+    for i in range(STEPS):
         acc.append(next(gen_output)[0, 0, 0, 0])
     assert acc[-1] == 99
     # One epoch is completed so enqueuer will switch the Sequence
 
     acc = []
-    for i in range(100):
+    for i in range(STEPS):
         acc.append(next(gen_output2)[0, 0, 0, 0])
     assert acc[-1] == 99 * 15
     # One epoch has been completed so enqueuer2 will switch
@@ -298,22 +302,22 @@ def test_context_switch():
 
 def test_on_epoch_end_threads():
     enqueuer = OrderedEnqueuer(DummySequence([3, 2, 2, 3]), use_multiprocessing=False)
-    enqueuer.start(3, 10)
+    enqueuer.start(WORKERS, 10)
     gen_output = enqueuer.get()
     acc = []
-    for i in range(100):
+    for i in range(STEPS):
         acc.append(next(gen_output)[0, 0, 0, 0])
     acc = []
-    for i in range(100):
+    for i in range(STEPS):
         acc.append(next(gen_output)[0, 0, 0, 0])
-    assert acc == list([k * 5 for k in range(100)]), "Order was not keep in GeneratorEnqueuer with processes"
+    assert acc == list([k * 5 for k in range(STEPS)]), "Order was not keep in GeneratorEnqueuer with processes"
     enqueuer.stop()
 
 
 @use_spawn
 def test_ordered_enqueuer_fail_processes():
     enqueuer = OrderedEnqueuer(FaultSequence(), use_multiprocessing=True)
-    enqueuer.start(3, 10)
+    enqueuer.start(WORKERS, 10)
     gen_output = enqueuer.get()
     with pytest.raises(StopIteration):
         next(gen_output)
@@ -333,24 +337,24 @@ def create_finite_generator_from_sequence_pcs(ds):
 def test_finite_generator_enqueuer_threads():
     enqueuer = GeneratorEnqueuer(create_finite_generator_from_sequence_threads(
         DummySequence([3, 2, 2, 3])), use_multiprocessing=False)
-    enqueuer.start(3, 10)
+    enqueuer.start(WORKERS, 10)
     gen_output = enqueuer.get()
     acc = []
     for output in gen_output:
         acc.append(int(output[0, 0, 0, 0]))
-    assert set(acc) == set(range(100)), "Output is not the same"
+    assert set(acc) == set(range(STEPS)), "Output is not the same"
     enqueuer.stop()
 
 
 def test_finite_generator_enqueuer_processes():
     enqueuer = GeneratorEnqueuer(create_finite_generator_from_sequence_pcs(
         DummySequence([3, 2, 2, 3])), use_multiprocessing=True)
-    enqueuer.start(3, 10)
+    enqueuer.start(WORKERS, 10)
     gen_output = enqueuer.get()
     acc = []
     for output in gen_output:
         acc.append(int(output[0, 0, 0, 0]))
-    assert acc != list(range(100)), "Order was keep in GeneratorEnqueuer with processes"
+    assert acc != list(range(STEPS)), "Order was keep in GeneratorEnqueuer with processes"
     enqueuer.stop()
 
 

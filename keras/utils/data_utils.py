@@ -755,6 +755,8 @@ class GeneratorEnqueuer(SequenceEnqueuer):
                 # join, rendering this test meaningless -> Call thread.join()
                 # always, which is ok no matter what the status of the thread.
                 thread.join(timeout)
+        while not self.queue.empty():
+            self.queue.get()
 
         if self._manager:
             self._manager.shutdown()

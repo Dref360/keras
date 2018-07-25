@@ -9,7 +9,7 @@ from keras.utils.test_utils import keras_test
 from keras.utils import Sequence
 
 STEPS_PER_EPOCH = 100
-STEPS = 100
+STEPS = 10
 WORKERS = 4
 
 
@@ -199,6 +199,7 @@ def test_multiprocessing_training():
                         max_queue_size=10,
                         workers=0,
                         use_multiprocessing=False)
+
 
 @keras_test
 def test_multiprocessing_training_invalid():
@@ -731,6 +732,7 @@ def test_multiprocessing_evaluate_error():
                                  max_queue_size=10,
                                  workers=WORKERS,
                                  use_multiprocessing=False)
+
 
 @keras_test
 def test_multiprocessing_evaluate_error_low():

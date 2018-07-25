@@ -45,6 +45,7 @@ setup(name='Keras',
                     'pytest-pep8',
                     'pytest-xdist',
                     'pytest-cov',
+                    'eventlet==0.19.0'
                     'pandas',
                     'requests'],
       },

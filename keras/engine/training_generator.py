@@ -234,7 +234,7 @@ def fit_generator(model,
                 break
 
     finally:
-        if output_generator :
+        if output_generator:
             del output_generator
         try:
             if enqueuer is not None:

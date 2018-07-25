@@ -42,7 +42,6 @@ install:
   - source activate test-environment
   - pip install --only-binary=numpy,scipy numpy nose scipy matplotlib h5py theano
   - pip install keras_applications keras_preprocessing
-  - pip install git+https://github.com/eli-b/pytest-memory-usage.git
   - conda install mkl mkl-service
 
   # set library path

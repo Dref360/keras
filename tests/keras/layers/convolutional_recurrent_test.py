@@ -5,10 +5,11 @@ from numpy.testing import assert_allclose
 from keras import backend as K
 from keras.models import Sequential, Model
 from keras.layers import convolutional_recurrent, Input
-from keras.utils.test_utils import layer_test
+from keras.utils.test_utils import layer_test, keras_test
 from keras import regularizers
 
 
+@keras_test
 def test_convolutional_recurrent():
     num_row = 3
     num_col = 3
