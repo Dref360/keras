@@ -22,7 +22,7 @@ from keras.utils.data_utils import validate_file
 
 WORKERS = 3
 
-STEPS = 100
+STEPS = 50
 
 if sys.version_info < (3,):
     def next(x):
@@ -34,6 +34,7 @@ def use_spawn(func):
     @six.wraps(func)
     def wrapper(*args, **kwargs):
         out = func(*args, **kwargs)
+        return out
         if sys.version_info > (3, 4):
             mp.set_start_method('spawn', force=True)
             func(*args, **kwargs)
@@ -255,6 +256,7 @@ def test_ordered_enqueuer_fail_threads():
     gen_output = enqueuer.get()
     with pytest.raises(StopIteration):
         next(gen_output)
+    enqueuer.stop()
 
 
 @use_spawn
@@ -273,20 +275,20 @@ def test_on_epoch_end_processes():
 def test_context_switch():
     enqueuer = OrderedEnqueuer(DummySequence([3, 2, 2, 3]), use_multiprocessing=True)
     enqueuer2 = OrderedEnqueuer(DummySequence([3, 2, 2, 3], value=15), use_multiprocessing=True)
-    enqueuer.start(WORKERS, 10)
-    enqueuer2.start(WORKERS, 10)
+    enqueuer.start(WORKERS, WORKERS)
+    enqueuer2.start(WORKERS, WORKERS)
     gen_output = enqueuer.get()
     gen_output2 = enqueuer2.get()
     acc = []
     for i in range(STEPS):
         acc.append(next(gen_output)[0, 0, 0, 0])
-    assert acc[-1] == 99
+    assert acc[-1] == STEPS - 1
     # One epoch is completed so enqueuer will switch the Sequence
 
     acc = []
     for i in range(STEPS):
         acc.append(next(gen_output2)[0, 0, 0, 0])
-    assert acc[-1] == 99 * 15
+    assert acc[-1] == (STEPS - 1) * 15
     # One epoch has been completed so enqueuer2 will switch
 
     # Be sure that both Sequence were updated
