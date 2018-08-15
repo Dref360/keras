@@ -29,11 +29,13 @@ def use_spawn(func):
     """Decorator to test both Unix (fork) and Windows (spawn)"""
     @six.wraps(func)
     def wrapper(*args, **kwargs):
-        out = func(*args, **kwargs)
+
         if sys.version_info > (3, 4):
             mp.set_start_method('spawn', force=True)
-            func(*args, **kwargs)
+            out = func(*args, **kwargs)
             mp.set_start_method('fork', force=True)
+        else:
+            out = func(*args, **kwargs)
         return out
     return wrapper
 

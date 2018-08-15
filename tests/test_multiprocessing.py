@@ -2,7 +2,11 @@ from __future__ import print_function
 import os
 import threading
 import pytest
+import multiprocessing as mp
 import numpy as np
+import six
+import sys
+
 from keras.models import Sequential
 from keras.layers.core import Dense
 from keras.utils.test_utils import keras_test
@@ -12,6 +16,19 @@ STEPS_PER_EPOCH = 100
 STEPS = 100
 WORKERS = 4
 
+def use_spawn(func):
+    """Decorator to test both Unix (fork) and Windows (spawn)"""
+    @six.wraps(func)
+    def wrapper(*args, **kwargs):
+
+        if sys.version_info > (3, 4):
+            mp.set_start_method('spawn', force=True)
+            out = func(*args, **kwargs)
+            mp.set_start_method('fork', force=True)
+        else:
+            out = func(*args, **kwargs)
+        return out
+    return wrapper
 
 class DummySequence(Sequence):
     def __getitem__(self, idx):
@@ -33,6 +50,7 @@ def in_tmpdir(tmpdir):
 
 
 @keras_test
+@use_spawn
 def test_multiprocessing_training():
     arr_data = np.random.randint(0, 256, (50, 2))
     arr_labels = np.random.randint(0, 2, 50)
@@ -240,6 +258,7 @@ def test_multiprocessing_training():
 
 
 @keras_test
+@use_spawn
 def test_multiprocessing_training_from_file(in_tmpdir):
     arr_data = np.random.randint(0, 256, (50, 2))
     arr_labels = np.random.randint(0, 2, 50)
@@ -360,6 +379,7 @@ def test_multiprocessing_training_from_file(in_tmpdir):
 
 
 @keras_test
+@use_spawn
 def test_multiprocessing_predicting():
     arr_data = np.random.randint(0, 256, (50, 2))
 
@@ -448,6 +468,7 @@ def test_multiprocessing_predicting():
 
 
 @keras_test
+@use_spawn
 def test_multiprocessing_evaluating():
     arr_data = np.random.randint(0, 256, (50, 2))
     arr_labels = np.random.randint(0, 2, 50)
@@ -539,6 +560,7 @@ def test_multiprocessing_evaluating():
 
 
 @keras_test
+@use_spawn
 def test_multiprocessing_fit_error():
     arr_data = np.random.randint(0, 256, (50, 2))
     arr_labels = np.random.randint(0, 2, 50)
@@ -651,6 +673,7 @@ def test_multiprocessing_fit_error():
 
 
 @keras_test
+@use_spawn
 def test_multiprocessing_evaluate_error():
     arr_data = np.random.randint(0, 256, (50, 2))
     arr_labels = np.random.randint(0, 2, 50)
@@ -753,6 +776,7 @@ def test_multiprocessing_evaluate_error():
 
 
 @keras_test
+@use_spawn
 def test_multiprocessing_predict_error():
     arr_data = np.random.randint(0, 256, (50, 2))
     good_batches = 3
