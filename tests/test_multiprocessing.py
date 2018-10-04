@@ -3,13 +3,14 @@ import os
 import threading
 import pytest
 import numpy as np
+import six
 from keras.models import Sequential
 from keras.layers.core import Dense
 from keras.utils import Sequence
 from keras import backend as K
 
 pytestmark = pytest.mark.skipif(
-    K.backend() == 'tensorflow',
+    K.backend() == 'tensorflow' and six.PY2,
     reason='Temporarily disabled until the use_multiprocessing problem is solved')
 
 STEPS_PER_EPOCH = 100

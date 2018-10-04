@@ -446,6 +446,7 @@ class SequenceEnqueuer(object):
                 self.uid = _SEQUENCE_COUNTER.value
                 _SEQUENCE_COUNTER.value += 1
 
+        self.ctx = None
         self.workers = 0
         self.executor_fn = None
         self.queue = None
@@ -455,7 +456,7 @@ class SequenceEnqueuer(object):
     def is_running(self):
         return self.stop_signal is not None and not self.stop_signal.is_set()
 
-    def start(self, workers=1, max_queue_size=10):
+    def start(self, workers=1, max_queue_size=10, use_spawn=True):
         """Start the handler's workers.
 
         # Arguments
@@ -463,8 +464,13 @@ class SequenceEnqueuer(object):
             max_queue_size: queue size
                 (when full, workers could block on `put()`)
         """
+        if six.PY3 and use_spawn and self.use_multiprocessing:
+            self.ctx = self.ctx = mp.get_context('spawn')
+        else:
+            self.ctx = mp.get_context() # Use the default context.
+
         if self.use_multiprocessing:
-            self.executor_fn = self._get_executor_init(workers)
+            self.executor_fn = self._get_executor_init(self.ctx, workers)
         else:
             # We do not need the init since it's threads.
             self.executor_fn = lambda _: ThreadPool(workers)
@@ -502,7 +508,7 @@ class SequenceEnqueuer(object):
         raise NotImplementedError
 
     @abstractmethod
-    def _get_executor_init(self, workers):
+    def _get_executor_init(self, ctx, workers):
         """Get the Pool initializer for multiprocessing.
 
         # Returns
@@ -537,15 +543,15 @@ class OrderedEnqueuer(SequenceEnqueuer):
         super(OrderedEnqueuer, self).__init__(sequence, use_multiprocessing)
         self.shuffle = shuffle
 
-    def _get_executor_init(self, workers):
+    def _get_executor_init(self, ctx, workers):
         """Get the Pool initializer for multiprocessing.
 
         # Returns
             Function, a Function to initialize the pool
         """
-        return lambda seqs: mp.Pool(workers,
-                                    initializer=init_pool,
-                                    initargs=(seqs,))
+        return lambda seqs: ctx.Pool(workers,
+                                     initializer=init_pool,
+                                     initargs=(seqs,))
 
     def _wait_queue(self):
         """Wait for the queue to be empty."""
@@ -650,15 +656,15 @@ class GeneratorEnqueuer(SequenceEnqueuer):
             warnings.warn('`wait_time` is not used anymore.',
                           DeprecationWarning)
 
-    def _get_executor_init(self, workers):
+    def _get_executor_init(self, ctx, workers):
         """Get the Pool initializer for multiprocessing.
 
         # Returns
             Function, a Function to initialize the pool
         """
-        return lambda seqs: mp.Pool(workers,
-                                    initializer=init_pool_generator,
-                                    initargs=(seqs, self.random_seed))
+        return lambda seqs: ctx.Pool(workers,
+                                     initializer=init_pool_generator,
+                                     initargs=(seqs, self.random_seed))
 
     def _run(self):
         """Submits request to the executor and queue the `Future` objects."""
