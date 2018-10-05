@@ -532,8 +532,10 @@ class OrderedEnqueuer(SequenceEnqueuer):
         sequence: A `keras.utils.data_utils.Sequence` object.
         use_multiprocessing: use multiprocessing if True, otherwise threading
         shuffle: whether to shuffle the data at the beginning of each epoch
+        use_spawn: bool, Use the `spawn` method on UNIX if avaiblable (Python3 Only)
     """
-    def __init__(self, sequence, use_multiprocessing=False, shuffle=False, use_spawn=True):
+    def __init__(self, sequence, use_multiprocessing=False, shuffle=False,
+                 use_spawn=True):
         super(OrderedEnqueuer, self).__init__(sequence, use_multiprocessing)
         self.shuffle = shuffle
         if six.PY3 and self.use_multiprocessing and use_spawn:
