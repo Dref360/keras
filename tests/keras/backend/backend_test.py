@@ -37,21 +37,6 @@ except ImportError:
 WITH_NP = [KTH if K.backend() == 'theano' else KC if K.backend() == 'cntk' else KTF, KNP]
 
 
-# CNTK only supports dilated convolution on GPU
-def get_dilated_conv_backends():
-    backend_list = []
-    if KTF is not None:
-        backend_list.append(KTF)
-    if KTH is not None:
-        backend_list.append(KTH)
-    if KC is not None and KC.dev.type() == 1:
-        backend_list.append(KC)
-    return backend_list
-
-
-DILATED_CONV_BACKENDS = get_dilated_conv_backends()
-
-
 def check_dtype(var, dtype):
     if K._BACKEND == 'theano':
         assert var.dtype == dtype
@@ -200,6 +185,18 @@ class TestBackend(object):
     def test_eye(self):
         check_single_tensor_operation('eye', 3, WITH_NP, shape_or_val=False)
 
+    def test_ones(self):
+        check_single_tensor_operation('ones', (3, 5, 10, 8), WITH_NP, shape_or_val=False)
+
+    def test_zeros(self):
+        check_single_tensor_operation('zeros', (3, 5, 10, 8), WITH_NP, shape_or_val=False)
+
+    def test_ones_like(self):
+        check_single_tensor_operation('ones_like', (3, 5, 10, 8), WITH_NP, shape_or_val=True)
+
+    def test_zeros_like(self):
+        check_single_tensor_operation('zeros_like', (3, 5, 10, 8), WITH_NP, shape_or_val=True)
+
     def test_linear_operations(self):
         check_two_tensor_operation('dot', (4, 2), (2, 4), WITH_NP)
         check_two_tensor_operation('dot', (4, 2), (5, 2, 3), WITH_NP)
@@ -300,8 +297,8 @@ class TestBackend(object):
     def test_tile(self):
         shape = (3, 4)
         arr = np.arange(np.prod(shape)).reshape(shape)
-        check_single_tensor_operation('tile', arr, BACKENDS, n=[2, 1])
-        check_single_tensor_operation('tile', (2, 5), BACKENDS, n=[5, 2])
+        check_single_tensor_operation('tile', arr, WITH_NP, n=[2, 1])
+        check_single_tensor_operation('tile', (2, 5), WITH_NP, n=[5, 2])
 
         # test theano shape inference when
         # input shape has None entries
@@ -407,6 +404,9 @@ class TestBackend(object):
         check_single_tensor_operation('pow', (4, 2), WITH_NP, a=3)
         check_single_tensor_operation('clip', (4, 2), WITH_NP, min_value=0.4,
                                       max_value=0.6)
+
+        check_single_tensor_operation('cos', (4, 2), WITH_NP)
+        check_single_tensor_operation('sin', (4, 2), WITH_NP)
 
         # two-tensor ops
         check_two_tensor_operation('equal', (4, 2), (4, 2), WITH_NP)
@@ -965,8 +965,24 @@ class TestBackend(object):
         with pytest.raises(ValueError):
             z = K.dropout(K.variable(val), level=-0.5)
 
+    @pytest.mark.parametrize('alpha,max_value,threshold', [
+        (0.0, None, 0.0),  # standard relu
+        (0.1, None, 0.0),  # set alpha only
+        (0.0, 5.0, 0.0),   # set max_value only
+        (0.0, None, 0.8),  # set threshold only
+        (0.1, 5.0, 0.0),   # set alpha and max_value
+        (0.1, None, 0.8),  # set alpha and threshold
+        (0.0, 5.0, 0.8),   # set max_value and threshold
+        (0.1, 5.0, 0.8),   # set all
+        (0.1, 0.0, 0.8),   # max_value is zero
+        (0.1, 5.0, -2.8),  # threshold is negative
+        (0.1, 9.0, 0.8),   # max_value > 6
+    ])
+    def test_relu(self, alpha, max_value, threshold):
+        check_single_tensor_operation('relu', (4, 2), WITH_NP, alpha=alpha,
+                                      max_value=max_value, threshold=threshold)
+
     def test_nn_operations(self):
-        check_single_tensor_operation('relu', (4, 2), WITH_NP, alpha=0.1, max_value=0.5)
         check_single_tensor_operation('softplus', (4, 10), WITH_NP)
         check_single_tensor_operation('elu', (4, 10), WITH_NP, alpha=0.5)
 
@@ -975,6 +991,7 @@ class TestBackend(object):
         check_single_tensor_operation('tanh', (4, 2), WITH_NP)
 
         check_single_tensor_operation('softmax', (4, 10), WITH_NP)
+        check_single_tensor_operation('softmax', (4, 5, 3), WITH_NP, axis=1)
         check_single_tensor_operation('softmax', (4, 5, 3, 10), WITH_NP, axis=2)
 
         check_two_tensor_operation('binary_crossentropy', (4, 2), (4, 2), WITH_NP, from_logits=True)
@@ -1044,6 +1061,20 @@ class TestBackend(object):
             padding=padding, data_format=data_format,
             cntk_dynamicity=True)
 
+    @pytest.mark.parametrize(
+        'op,input_shape,kernel_shape,output_shape,padding,data_format', [
+            ('conv2d_transpose', (2, 5, 6, 3), (3, 3, 2, 3), (2, 5, 6, 2),
+             'same', 'channels_last'),
+            ('conv2d_transpose', (2, 3, 8, 9), (3, 3, 2, 3), (2, 2, 8, 9),
+             'same', 'channels_first'),
+        ])
+    def test_conv_transpose(self, op, input_shape, kernel_shape, output_shape,
+                            padding, data_format):
+        check_two_tensor_operation(
+            op, input_shape, kernel_shape, WITH_NP,
+            output_shape=output_shape, padding=padding, data_format=data_format,
+            cntk_dynamicity=True)
+
     @pytest.mark.skipif((K.backend() == 'cntk' and K.dev.type() == 0),
                         reason='cntk only supports dilated conv on GPU')
     @pytest.mark.parametrize('op,input_shape,kernel_shape,padding,data_format,dilation_rate', [
@@ -1054,11 +1085,12 @@ class TestBackend(object):
         ('conv3d', (2, 5, 4, 6, 3), (2, 2, 3, 3, 4), 'valid', 'channels_last', (2, 2, 2)),
         ('conv3d', (2, 3, 5, 4, 6), (2, 2, 3, 3, 4), 'same', 'channels_first', (2, 2, 2)),
     ])
-    def test_conv_dilation(self, op, input_shape, kernel_shape, padding,
-                           data_format, dilation_rate):
+    def test_dilated_conv(self, op, input_shape, kernel_shape, padding,
+                          data_format, dilation_rate):
         check_two_tensor_operation(
-            op, input_shape, kernel_shape, DILATED_CONV_BACKENDS, padding=padding,
-            data_format=data_format, dilation_rate=dilation_rate, cntk_dynamicity=True)
+            op, input_shape, kernel_shape, WITH_NP,
+            padding=padding, data_format=data_format,
+            dilation_rate=dilation_rate, cntk_dynamicity=True)
 
     @pytest.mark.skipif((K.backend() == 'cntk' and K.dev.type() == 0),
                         reason='cntk only supports dilated conv transpose on GPU')
@@ -1069,10 +1101,10 @@ class TestBackend(object):
             ('conv2d_transpose', (2, 3, 8, 9), (3, 3, 2, 3), (2, 2, 8, 9),
              'same', 'channels_first', (2, 2)),
         ])
-    def test_conv_transpose_dilation(self, op, input_shape, kernel_shape, output_shape,
-                                     padding, data_format, dilation_rate):
+    def test_dilated_conv_transpose(self, op, input_shape, kernel_shape, output_shape,
+                                    padding, data_format, dilation_rate):
         check_two_tensor_operation(
-            op, input_shape, kernel_shape, DILATED_CONV_BACKENDS, output_shape=output_shape,
+            op, input_shape, kernel_shape, WITH_NP, output_shape=output_shape,
             padding=padding, data_format=data_format, dilation_rate=dilation_rate,
             cntk_dynamicity=True)
 
