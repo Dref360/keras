@@ -218,6 +218,9 @@ def test_generator_enqueuer_fail_threads():
         next(gen_output)
 
 
+@pytest.mark.skipif(
+     K.backend() == 'tensorflow',
+     reason='Temporarily disabled until the use_multiprocessing problem is solved')
 def test_generator_enqueuer_fail_processes():
     enqueuer = GeneratorEnqueuer(create_generator_from_sequence_pcs(
         FaultSequence()), use_multiprocessing=True)
@@ -254,7 +257,6 @@ def test_ordered_enqueuer_threads_not_ordered():
     enqueuer.stop()
 
 
-@use_spawn
 def test_ordered_enqueuer_processes():
     enqueuer = OrderedEnqueuer(DummySequence([3, 200, 200, 3]),
                                use_multiprocessing=True)
@@ -276,7 +278,6 @@ def test_ordered_enqueuer_fail_threads():
         next(gen_output)
 
 
-@use_spawn
 def test_on_epoch_end_processes():
     enqueuer = OrderedEnqueuer(DummySequence([3, 200, 200, 3]),
                                use_multiprocessing=True)
@@ -290,7 +291,6 @@ def test_on_epoch_end_processes():
     enqueuer.stop()
 
 
-@use_spawn
 def test_context_switch():
     enqueuer = OrderedEnqueuer(DummySequence([3, 200, 200, 3]),
                                use_multiprocessing=True)
@@ -339,7 +339,6 @@ def test_on_epoch_end_threads():
     enqueuer.stop()
 
 
-@use_spawn
 def test_ordered_enqueuer_fail_processes():
     enqueuer = OrderedEnqueuer(FaultSequence(), use_multiprocessing=True)
     enqueuer.start(3, 10)
@@ -371,6 +370,9 @@ def test_finite_generator_enqueuer_threads():
     enqueuer.stop()
 
 
+@pytest.mark.skipif(
+     K.backend() == 'tensorflow',
+     reason='Temporarily disabled until the use_multiprocessing problem is solved')
 def test_finite_generator_enqueuer_processes():
     enqueuer = GeneratorEnqueuer(create_finite_generator_from_sequence_pcs(
         DummySequence([3, 200, 200, 3])), use_multiprocessing=True)
