@@ -21,9 +21,6 @@ from keras.utils.data_utils import get_file
 from keras.utils.data_utils import validate_file
 from keras import backend as K
 
-pytestmark = pytest.mark.skipif(
-    K.backend() == 'tensorflow' and six.PY2,
-    reason='Temporarily disabled until the use_multiprocessing problem is solved')
 
 if sys.version_info < (3,):
     def next(x):
@@ -185,6 +182,9 @@ def test_generator_enqueuer_threads():
     enqueuer.stop()
 
 
+@pytest.mark.skipif(
+    K.backend() == 'tensorflow',
+    reason='Temporarily disabled until the use_multiprocessing problem is solved')
 def test_generator_enqueuer_processes():
     enqueuer = GeneratorEnqueuer(create_generator_from_sequence_pcs(
         DummySequence([3, 200, 200, 3])), use_multiprocessing=True)
@@ -219,8 +219,8 @@ def test_generator_enqueuer_fail_threads():
 
 
 @pytest.mark.skipif(
-     K.backend() == 'tensorflow',
-     reason='Temporarily disabled until the use_multiprocessing problem is solved')
+    K.backend() == 'tensorflow',
+    reason='Temporarily disabled until the use_multiprocessing problem is solved')
 def test_generator_enqueuer_fail_processes():
     enqueuer = GeneratorEnqueuer(create_generator_from_sequence_pcs(
         FaultSequence()), use_multiprocessing=True)
@@ -371,8 +371,8 @@ def test_finite_generator_enqueuer_threads():
 
 
 @pytest.mark.skipif(
-     K.backend() == 'tensorflow',
-     reason='Temporarily disabled until the use_multiprocessing problem is solved')
+    K.backend() == 'tensorflow',
+    reason='Temporarily disabled until the use_multiprocessing problem is solved')
 def test_finite_generator_enqueuer_processes():
     enqueuer = GeneratorEnqueuer(create_finite_generator_from_sequence_pcs(
         DummySequence([3, 200, 200, 3])), use_multiprocessing=True)
