@@ -1,12 +1,14 @@
-import pytest
+from itertools import product
+
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose
 
 from keras import backend as K
-from keras.models import Sequential, Model
-from keras.layers import convolutional_recurrent, Input, Masking, Lambda
-from keras.utils.test_utils import layer_test
 from keras import regularizers
+from keras.layers import convolutional_recurrent, Input, Masking
+from keras.models import Sequential, Model
+from keras.utils.test_utils import layer_test
 
 num_row = 3
 num_col = 3
@@ -18,60 +20,57 @@ input_num_col = 5
 sequence_len = 2
 
 
-def test_convolutional_recurrent():
+class Masking5D(Masking):
+    """Regular masking layer returns wrong shape of mask for RNN"""
 
-    class Masking5D(Masking):
-        """Regular masking layer returns wrong shape of mask for RNN"""
-        def compute_mask(self, inputs, mask=None):
-            return K.any(K.not_equal(inputs, 0.), axis=[2, 3, 4])
+    def compute_mask(self, inputs, mask=None):
+        return K.any(K.not_equal(inputs, 0.), axis=[2, 3, 4])
 
-    for data_format in ['channels_first', 'channels_last']:
 
-        if data_format == 'channels_first':
-            inputs = np.random.rand(num_samples, sequence_len,
-                                    input_channel,
-                                    input_num_row, input_num_col)
-        else:
-            inputs = np.random.rand(num_samples, sequence_len,
-                                    input_num_row, input_num_col,
-                                    input_channel)
+@pytest.mark.parametrize('data_format, use_mask, return_sequences',
+                         list(product(['channel_first', 'channel_last'], [True, False], [True, False])))
+def test_convolutional_recurrent(data_format, use_mask, return_sequences):
+    if data_format == 'channels_first':
+        inputs = np.random.rand(num_samples, sequence_len,
+                                input_channel,
+                                input_num_row, input_num_col)
+    else:
+        inputs = np.random.rand(num_samples, sequence_len,
+                                input_num_row, input_num_col,
+                                input_channel)
+    # test for return state:
+    x = Input(batch_shape=inputs.shape)
+    kwargs = {'data_format': data_format,
+              'return_sequences': return_sequences,
+              'return_state': True,
+              'stateful': True,
+              'filters': filters,
+              'kernel_size': (num_row, num_col),
+              'padding': 'valid'}
+    layer = convolutional_recurrent.ConvLSTM2D(**kwargs)
+    layer.build(inputs.shape)
+    if use_mask:
+        outputs = layer(Masking5D()(x))
+    else:
+        outputs = layer(x)
+    output, states = outputs[0], outputs[1:]
+    assert len(states) == 2
+    model = Model(x, states[0])
+    state = model.predict(inputs)
+    np.testing.assert_allclose(
+        K.eval(layer.states[0]), state, atol=1e-4)
 
-        for use_mask in [False, True]:
-            for return_sequences in [True, False]:
-                # test for return state:
-                x = Input(batch_shape=inputs.shape)
-                kwargs = {'data_format': data_format,
-                          'return_sequences': return_sequences,
-                          'return_state': True,
-                          'stateful': True,
-                          'filters': filters,
-                          'kernel_size': (num_row, num_col),
-                          'padding': 'valid'}
-                layer = convolutional_recurrent.ConvLSTM2D(**kwargs)
-                layer.build(inputs.shape)
-                if use_mask:
-                    outputs = layer(Masking5D()(x))
-                else:
-                    outputs = layer(x)
-                output, states = outputs[0], outputs[1:]
-                assert len(states) == 2
-                model = Model(x, states[0])
-                state = model.predict(inputs)
-                np.testing.assert_allclose(
-                    K.eval(layer.states[0]), state, atol=1e-4)
-
-                # test for output shape:
-                output = layer_test(convolutional_recurrent.ConvLSTM2D,
-                                    kwargs={'data_format': data_format,
-                                            'return_sequences': return_sequences,
-                                            'filters': filters,
-                                            'kernel_size': (num_row, num_col),
-                                            'padding': 'valid'},
-                                    input_shape=inputs.shape)
+    # test for output shape:
+    _ = layer_test(convolutional_recurrent.ConvLSTM2D,
+                        kwargs={'data_format': data_format,
+                                'return_sequences': return_sequences,
+                                'filters': filters,
+                                'kernel_size': (num_row, num_col),
+                                'padding': 'valid'},
+                        input_shape=inputs.shape)
 
 
 def test_convolutional_recurrent_statefulness():
-
     data_format = 'channels_last'
     return_sequences = False
     inputs = np.random.rand(num_samples, sequence_len,
@@ -98,13 +97,13 @@ def test_convolutional_recurrent_statefulness():
     out2 = model.predict(np.ones_like(inputs))
 
     # if the state is not reset, output should be different
-    assert(out1.max() != out2.max())
+    assert (out1.max() != out2.max())
 
     # check that output changes after states are reset
     # (even though the model itself didn't change)
     layer.reset_states()
     out3 = model.predict(np.ones_like(inputs))
-    assert(out2.max() != out3.max())
+    assert (out2.max() != out3.max())
 
     # check that container-level reset_states() works
     model.reset_states()
@@ -113,7 +112,7 @@ def test_convolutional_recurrent_statefulness():
 
     # check that the call to `predict` updated the states
     out5 = model.predict(np.ones_like(inputs))
-    assert(out4.max() != out5.max())
+    assert (out4.max() != out5.max())
 
     # cntk doesn't support eval convolution with static
     # variable, will enable it later
