@@ -28,7 +28,7 @@ class Masking5D(Masking):
 
 
 @pytest.mark.parametrize('data_format, use_mask, return_sequences',
-                         list(product(['channel_first', 'channel_last'], [True, False], [True, False])))
+                         list(product(['channels_last', 'channels_first'], [True, False], [True, False])))
 def test_convolutional_recurrent(data_format, use_mask, return_sequences):
     if data_format == 'channels_first':
         inputs = np.random.rand(num_samples, sequence_len,
