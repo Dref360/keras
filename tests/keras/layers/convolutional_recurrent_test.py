@@ -56,7 +56,7 @@ def test_convolutional_recurrent(data_format, use_mask, return_sequences):
     output, states = outputs[0], outputs[1:]
     assert len(states) == 2
     model = Model(x, states[0])
-    state = model.predict(inputs)
+    state = model.predict_on_batch(inputs)
     np.testing.assert_allclose(
         K.eval(layer.states[0]), state, atol=1e-4)
 

@@ -1056,6 +1056,9 @@ class TensorBoard(Callback):
         self.samples_seen = 0
         self.samples_seen_at_last_write = 0
 
+    def __del__(self):
+        del self.model
+
     def set_model(self, model):
         self.model = model
         if K.backend() == 'tensorflow':

@@ -890,6 +890,7 @@ def test_TensorBoard(tmpdir, update_freq):
     model.fit_generator(train_generator, len(X_train), epochs=2,
                         validation_data=(X_test, y_test),
                         callbacks=callbacks_factory(histogram_freq=1))
+    del train_generator
 
     assert os.path.isdir(filepath)
     shutil.rmtree(filepath)
