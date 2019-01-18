@@ -81,5 +81,5 @@ script:
     elif [[ "$TEST_MODE" == "PEP8_DOC" ]]; then
       PYTHONPATH=$PWD:$PYTHONPATH py.test --no-print-logs --pep8 -m pep8 -n0 && py.test tests/test_documentation.py && cd docs && python autogen.py && mkdocs build;
     else
-      PYTHONPATH=$PWD:$PYTHONPATH py.test --no-print-logs tests/ --ignore=tests/integration_tests --ignore=tests/test_documentation.py --ignore=tests/keras/legacy/layers_test.py --cov-config .coveragerc --cov=keras tests/;
+      PYTHONPATH=$PWD:$PYTHONPATH py.test --no-print-logs -R tests/ --ignore=tests/integration_tests --ignore=tests/test_documentation.py --ignore=tests/keras/legacy/layers_test.py --cov-config .coveragerc --cov=keras tests/;
     fi
