@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 
 from keras_preprocessing import sequence
+from keras_preprocessing.sequence import TimeseriesGenerator
 from .. import utils
 
 pad_sequences = sequence.pad_sequences
