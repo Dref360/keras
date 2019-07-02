@@ -50,6 +50,11 @@ def fit_generator(model,
                         ' and multiple workers may duplicate your data.'
                         ' Please consider using the `keras.utils.Sequence'
                         ' class.'))
+
+    # if generator is instance of Sequence and steps_per_epoch are not provided -
+    # recompute steps_per_epoch after each epoch
+    recompute_steps_per_epoch = use_sequence_api and steps_per_epoch is None
+
     if steps_per_epoch is None:
         if use_sequence_api:
             steps_per_epoch = len(generator)
@@ -252,10 +257,27 @@ def fit_generator(model,
                 if callbacks.model.stop_training:
                     break
 
+            if use_sequence_api and workers == 0:
+                # calling on_epoch_end manually for sequences in main thread
+                generator.on_epoch_end()
+
             callbacks.on_epoch_end(epoch, epoch_logs)
             epoch += 1
             if callbacks.model.stop_training:
                 break
+
+            if recompute_steps_per_epoch:
+                # recomute steps per epochs in case if Sequence changes it's length
+                steps_per_epoch = len(generator)
+
+                # update callbacks to make sure params are valid each epoch
+                callbacks.set_params({
+                    'epochs': epochs,
+                    'steps': steps_per_epoch,
+                    'verbose': verbose,
+                    'do_validation': do_validation,
+                    'metrics': callback_metrics,
+                })
 
     finally:
         try:

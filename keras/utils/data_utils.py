@@ -561,18 +561,25 @@ class OrderedEnqueuer(SequenceEnqueuer):
 
     def _run(self):
         """Submits request to the executor and queue the `Future` objects."""
-        sequence = list(range(len(self.sequence)))
-        self._send_sequence()  # Share the initial sequence
         while True:
+            # Get new sequence indexes for each epoch
+            sequence = list(range(len(self.sequence)))
+            # We need to update sequence and sent to the pool at the beginning
+            # of each epoch. This is done to make sure correct indexes are used
+            # in case if Sequence changes it's length.
+            self._send_sequence()
+
             if self.shuffle:
                 random.shuffle(sequence)
 
             with closing(self.executor_fn(_SHARED_SEQUENCES)) as executor:
-                for i in sequence:
+                for i, item_idx in enumerate(sequence):
                     if self.stop_signal.is_set():
                         return
-                    future = executor.apply_async(get_index, (self.uid, i))
-                    future.idx = i
+                    future = executor.apply_async(get_index, (self.uid, item_idx))
+                    future.idx = item_idx
+                    # last is True if item is last in current epoch
+                    future.last = i == len(sequence) - 1
                     self.queue.put(future, block=True)
 
                 # Done with the current epoch, waiting for the final batches
@@ -581,10 +588,6 @@ class OrderedEnqueuer(SequenceEnqueuer):
                 if self.stop_signal.is_set():
                     # We're done
                     return
-
-            # Call the internal on epoch end.
-            self.sequence.on_epoch_end()
-            self._send_sequence()  # Update the pool
 
     def get(self):
         """Creates a generator to extract data from the queue.
@@ -601,6 +604,9 @@ class OrderedEnqueuer(SequenceEnqueuer):
                 try:
                     future = self.queue.get(block=True)
                     inputs = future.get(timeout=30)
+                    if future.last:
+                        # if future is last in epoch - call Sequence::on_epoch_end
+                        self.sequence.on_epoch_end()
                     self.queue.task_done()
                 except mp.TimeoutError:
                     idx = future.idx
