@@ -573,13 +573,11 @@ class OrderedEnqueuer(SequenceEnqueuer):
                 random.shuffle(sequence)
 
             with closing(self.executor_fn(_SHARED_SEQUENCES)) as executor:
-                for i, item_idx in enumerate(sequence):
+                for i in sequence:
                     if self.stop_signal.is_set():
                         return
-                    future = executor.apply_async(get_index, (self.uid, item_idx))
-                    future.idx = item_idx
-                    # last is True if item is last in current epoch
-                    future.last = i == len(sequence) - 1
+                    future = executor.apply_async(get_index, (self.uid, i))
+                    future.idx = i
                     self.queue.put(future, block=True)
 
                 # Done with the current epoch, waiting for the final batches
@@ -604,9 +602,6 @@ class OrderedEnqueuer(SequenceEnqueuer):
                 try:
                     future = self.queue.get(block=True)
                     inputs = future.get(timeout=30)
-                    if future.last:
-                        # if future is last in epoch - call Sequence::on_epoch_end
-                        self.sequence.on_epoch_end()
                     self.queue.task_done()
                 except mp.TimeoutError:
                     idx = future.idx

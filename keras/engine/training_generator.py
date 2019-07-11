@@ -257,8 +257,7 @@ def fit_generator(model,
                 if callbacks.model.stop_training:
                     break
 
-            if use_sequence_api and workers == 0:
-                # calling on_epoch_end manually for sequences in main thread
+            if use_sequence_api:
                 generator.on_epoch_end()
 
             callbacks.on_epoch_end(epoch, epoch_logs)
