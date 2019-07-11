@@ -257,17 +257,20 @@ def fit_generator(model,
                 if callbacks.model.stop_training:
                     break
 
-            if use_sequence_api:
-                generator.on_epoch_end()
-
             callbacks.on_epoch_end(epoch, epoch_logs)
             epoch += 1
             if callbacks.model.stop_training:
                 break
 
+            if use_sequence_api and workers == 0:
+                generator.on_epoch_end()
+
             if recompute_steps_per_epoch:
                 # recomute steps per epochs in case if Sequence changes it's length
-                steps_per_epoch = len(generator)
+                if workers == 0:
+                    steps_per_epoch = len(generator)
+                else:
+                    steps_per_epoch = enqueuer.get_sequence_length()
 
                 # update callbacks to make sure params are valid each epoch
                 callbacks.set_params({

@@ -410,7 +410,7 @@ def test_on_epoch_end_threads_sequence_change_length():
     assert acc == list(range(100)), ('Order was not keep in GeneratorEnqueuer '
                                      'with threads')
 
-    assert len(seq) == 50
+    assert enqueuer.get_sequence_length() == 50
     acc = []
     for i in range(50):
         acc.append(next(gen_output)[0, 0, 0, 0])
