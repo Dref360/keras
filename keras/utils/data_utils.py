@@ -541,7 +541,7 @@ class OrderedEnqueuer(SequenceEnqueuer):
     def __init__(self, sequence, use_multiprocessing=False, shuffle=False):
         super(OrderedEnqueuer, self).__init__(sequence, use_multiprocessing)
         self.shuffle = shuffle
-        self.length_queue = queue.Queue(1)
+        self.end_of_epoch_signal = threading.Event()
 
     def _get_executor_init(self, workers):
         """Get the Pool initializer for multiprocessing.
@@ -586,13 +586,15 @@ class OrderedEnqueuer(SequenceEnqueuer):
 
                 if self.stop_signal.is_set():
                     # We're done
+                    self.end_of_epoch_signal.set()
                     return
 
             self.sequence.on_epoch_end()
-            self.length_queue.put(len(self.sequence), block=True)
+            self.end_of_epoch_signal.set()
 
-    def get_sequence_length(self):
-        return self.length_queue.get(block=True)
+    def join_end_of_epoch(self):
+        self.end_of_epoch_signal.wait(timeout=5)
+        self.end_of_epoch_signal.clear()
 
     def get(self):
         """Creates a generator to extract data from the queue.
