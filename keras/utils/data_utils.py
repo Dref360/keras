@@ -590,6 +590,7 @@ class OrderedEnqueuer(SequenceEnqueuer):
                     return
 
             self.sequence.on_epoch_end()
+            self._send_sequence()
             self.end_of_epoch_signal.set()
 
     def join_end_of_epoch(self):

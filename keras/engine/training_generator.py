@@ -267,7 +267,7 @@ def fit_generator(model,
 
             if recompute_steps_per_epoch:
                 # recompute steps per epochs in case if Sequence changes it's length
-                if workers >= 0:
+                if workers > 0:
                     enqueuer.join_end_of_epoch()
                 steps_per_epoch = len(generator)
 
